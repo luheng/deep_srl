@@ -1,4 +1,4 @@
-# Neural Semantic Role Labeling
+# Deep Semantic Role Labeling
 
 This repository contains code for training and using the deep SRL model described in:
 [Deep Semantic Role Labeling: What works and what's next](https://homes.cs.washington.edu/~luheng/files/acl2017_hllz.pdf)
@@ -129,4 +129,4 @@ Example lines:
 
 ## Contact
 
-Contact Luheng He if you have any questions!
+Contact [Luheng He](https://homes.cs.washington.edu/~luheng/) if you have any questions!
