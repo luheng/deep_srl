@@ -1,0 +1,5 @@
+2 The cat love hats . ||| B-A0 I-A0 B-V B-A1 O
+1 John told Pat to cut off the tree . ||| B-A0 B-V B-A1 I-A1 I-A1 I-A1 I-A1 I-A1 O
+4 John told Pat to cut off the tree . ||| O O B-A0 O B-V I-V B-A1 I-A1 O
+1 We saw the Grand Canyon flying to Chicago . ||| B-A0 B-V B-A1 I-A1 I-A1 I-A1 I-A1 I-A1 O
+5 We saw the Grand Canyon flying to Chicago . ||| B-A1 O O O O B-V B-AM-DIR I-AM-DIR O
