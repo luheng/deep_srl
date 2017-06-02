@@ -87,7 +87,7 @@ See usage of `python/train.py`:
 `python python/predict.py -h`
 
 Or as a quick start, run trained model (requires conll05_ensemble):  
-`./scripts/run_predict.sh ${gpu_id}`
+`./scripts/run_predict_conll05.sh ${gpu_id}`
 or:   
 `./scripts/run_predict_conll05.sh` for running on CPU.
 
