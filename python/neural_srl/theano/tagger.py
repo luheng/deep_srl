@@ -70,16 +70,19 @@ class BiLSTMTaggerModel(object):
     self.pred0 = self.pred.reshape([self.x.shape[0], self.x.shape[1]]).dimshuffle(1, 0)
     
   def get_eval_function(self):  
-    """ Define functions. We should feed in non-dimshuffled inputs x0, mask0 and y0.
+    """ We should feed in non-dimshuffled inputs x0, mask0 and y0.
+        Used for tracking Dev loss at training time.
     """
-    return theano.function([self.x0, self.mask0], [self.pred0, self.scores],
-                 name='f_pred',
+    loss = CrossEntropyLoss().connect(self.scores, self.mask, self.y)
+    return theano.function([self.x0, self.mask0, self.y0], [self.pred0, loss],
+                 name='f_eval',
                  allow_input_downcast=True,
                  on_unused_input='warn',
                  givens=({self.is_train:  numpy.cast['int8'](0)}))
     
   def get_distribution_function(self):
     """ Return predictions and scores of shape [batch_size, time_steps, label space size].
+        Used at test time.
     """
     scores0 = self.scores.reshape([self.x.shape[0], self.x.shape[1],
                      self.label_space_size]).dimshuffle(1, 0, 2)
@@ -91,11 +94,13 @@ class BiLSTMTaggerModel(object):
                  givens=({self.is_train:  numpy.cast['int8'](0)}))
   
   def get_loss_function(self):
+    """ We should feed in non-dimshuffled inputs x0, mask0 and y0.
+    """
     loss = CrossEntropyLoss().connect(self.scores, self.mask, self.y)
     grads = gradient_clipping(tensor.grad(loss, self.params),
                   self.max_grad_norm)
     updates = adadelta(self.params, grads)
-    
+
     return theano.function([self.x0, self.mask0, self.y0], loss,
                  name='f_loss',
                  updates=updates,

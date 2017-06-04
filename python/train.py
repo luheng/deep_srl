@@ -16,14 +16,19 @@ import theano
 
 def evaluate_tagger(model, eval_function, batched_dev_data, evaluator, writer, global_step):
   predictions = None
+  dev_loss = 0
   for i, batched_tensor in enumerate(batched_dev_data):
-    x, _, _, w = batched_tensor
-    p, _ = eval_function(x, w)
+    x, y, _, weights = batched_tensor
+    p, loss = eval_function(x, weights, y)
     predictions = numpy.concatenate((predictions, p), axis=0) if i > 0 else p
+    dev_loss += loss
+
+  print ('Dev loss={:.6f}'.format(dev_loss))
   evaluator.evaluate(predictions)
-  writer.write('{}\t{}\t{:.2f}\n'.format(global_step,
-                                         time.strftime("%Y-%m-%d %H:%M:%S"),
-                                         evaluator.accuracy))
+  writer.write('{}\t{}\t{:.6f}\t{:.2f}\n'.format(global_step,
+                                                 time.strftime("%Y-%m-%d %H:%M:%S"),
+                                                 dev_loss, 
+                                                 evaluator.accuracy))
   writer.flush()
   if evaluator.has_best:
     model.save(os.path.join(args.model, 'model'))
@@ -74,7 +79,7 @@ def train_tagger(args):
     data.word_dict.save(os.path.join(args.model, 'word_dict'))
     data.label_dict.save(os.path.join(args.model, 'label_dict'))
     writer = open(os.path.join(args.model, 'checkpoints.tsv'), 'w')
-    writer.write('step\tdatetime\tdev_accuracy\n')
+    writer.write('step\tdatetime\tdev_loss\tdev_accuracy\n')
 
   with Timer('Building model'):
     model = BiLSTMTaggerModel(data, config=config)  
