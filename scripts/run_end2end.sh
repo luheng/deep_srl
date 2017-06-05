@@ -26,6 +26,7 @@ THEANO_FLAGS=$TH_FLAGS python python/predict.py \
   --model=$MODEL_PATH2 \
   --task="srl" \
   --input="${TEMP_PATH}/sample.pp.txt" \
-  --inputprops="${TEMP_PATH}/sample.pred.props" 
+  --inputprops="${TEMP_PATH}/sample.pred.props" \
+  --output="${OUTPUT_PATH}"
 
 
