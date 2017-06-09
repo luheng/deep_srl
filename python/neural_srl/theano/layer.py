@@ -22,6 +22,8 @@ def get_rnn_layer(layer_name):
     return SimpleHighwayLSTMLayer
   if layer_name == 'residual':
     return ResidualLSTMLayer
+  if layer_name == 'ran':
+    return RANLayer
   return LSTMLayer
 
 
@@ -179,7 +181,8 @@ class LSTMLayerNoOrth(LSTMLayer):
   '''
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
          input_dropout_prob = 0.0, recurrent_dropout_prob = 0.0,
-          prefix='lstm'):
+         fast_predict=False,
+         prefix='lstm'):
     '''
     '''
     self.input_dim = input_dim
@@ -193,7 +196,7 @@ class LSTMLayerNoOrth(LSTMLayer):
     
     self.forget_bias = forget_bias
     self.prefix = prefix
-    
+    self.fast_predict = fast_predict 
     self._init_dropout_layers(input_dropout_prob, recurrent_dropout_prob)
 
 
@@ -253,6 +256,7 @@ class HighwayLSTMLayerNoOrth(HighwayLSTMLayer):
   '''
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
          input_dropout_prob = 0.0, recurrent_dropout_prob = 0.0,
+         fast_predict=False,
          prefix='hwlstm'):
     
     self.input_dim = input_dim
@@ -265,7 +269,7 @@ class HighwayLSTMLayerNoOrth(HighwayLSTMLayer):
                 all_zero_initializer())
     self.params = [self.W, self.U, self.b]
     self.forget_bias = forget_bias
-    
+    self.fast_predict = fast_predict 
     self.prefix = prefix
     self._init_dropout_layers(input_dropout_prob, recurrent_dropout_prob)
   
@@ -301,6 +305,7 @@ class HighwayGRULayer(LSTMLayer):
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
          input_dropout_prob = 0,
          recurrent_dropout_prob = 0,
+         fast_predict=False,
          prefix='hwgru'):
     self.input_dim = input_dim
     self.hidden_dim = hidden_dim
@@ -315,6 +320,7 @@ class HighwayGRULayer(LSTMLayer):
     self.params = [self.W, self.U, self.b]
     self.forget_bias = forget_bias
     self.prefix = prefix
+    self.fast_predict = fast_predict
     self._init_dropout_layers(input_dropout_prob, recurrent_dropout_prob)
   
   def _step(self, x_, m_, h_, c_):
@@ -345,6 +351,7 @@ class SimpleHighwayLSTMLayer(LSTMLayer):
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
          input_dropout_prob=0.0,
          recurrent_dropout_prob=0.0,
+         fast_predict=False,
          prefix='simplehw'):
     if input_dim != hidden_dim:
       raise NotImplementedError("Input dimension needs to be same as hidden!")
@@ -360,6 +367,7 @@ class SimpleHighwayLSTMLayer(LSTMLayer):
     self.params = [self.W, self.U, self.b]
     self.forget_bias = forget_bias
     self.prefix = prefix
+    self.fast_predict = fast_predict
     self._init_dropout_layers(input_dropout_prob, recurrent_dropout_prob)
   
   
@@ -409,6 +417,7 @@ class ResidualLSTMLayer(SimpleHighwayLSTMLayer):
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
          input_dropout_prob=0.0,
          recurrent_dropout_prob=0.0,
+         fast_predict=False,
          prefix='residual'):
     if input_dim != hidden_dim:
       raise NotImplementedError("Input dimension needs to be same as hidden!")
@@ -424,6 +433,7 @@ class ResidualLSTMLayer(SimpleHighwayLSTMLayer):
     self.params = [self.W, self.U, self.b]
     self.forget_bias = forget_bias
     self.prefix = prefix
+    self.fast_predict = fast_predict
     self._init_dropout_layers(input_dropout_prob, recurrent_dropout_prob)
   
   
@@ -447,29 +457,66 @@ class ResidualLSTMLayer(SimpleHighwayLSTMLayer):
   def connect(self, inputs, mask, is_train):
     return SimpleHighwayLSTMLayer.connect(self, inputs, mask, is_train)
     
+class RANLayer(LSTMLayer):
+  ''' Recurrent Addivitve Networks (RAN), Lee et al., 2017
+  '''
+  def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
+         input_dropout_prob = 0,
+         recurrent_dropout_prob = 0,
+         fast_predict=False,
+         prefix='hwgru'):
+    self.input_dim = input_dim
+    self.hidden_dim = hidden_dim
+    # W_ix, W_fx
+    self.W = get_variable(_p(prefix, 'W'), [input_dim, hidden_dim * 3],
+                block_orth_normal_initializer([input_dim,], [hidden_dim] * 3))  
+    # W_ic, W_fc
+    self.U = get_variable(_p(prefix,' U'), [hidden_dim, hidden_dim * 2],
+                block_orth_normal_initializer([hidden_dim,], [hidden_dim] * 2))
+    self.b = get_variable(_p(prefix, 'b'), [hidden_dim * 3],
+                all_zero_initializer())
+    self.params = [self.W, self.U, self.b]
+    self.forget_bias = forget_bias
+    self.prefix = prefix
+    self.fast_predict = fast_predict
+    self._init_dropout_layers(input_dropout_prob, recurrent_dropout_prob)
+  
+  def _step(self, x_, m_, h_, c_):
+    preact = tensor.dot(h_, self.U) + _slice(x_, 0, self.hidden_dim * 2)
+    i = tensor.nnet.sigmoid(_slice(preact, 0, self.hidden_dim))
+    f = tensor.nnet.sigmoid(_slice(preact, 1, self.hidden_dim) + self.forget_bias)
+    # Linear-projected input.
+    j = _slice(x_, 2, self.hidden_dim)
+    c = i * j + f * c_
+    c = m_[:, None] * c + (1. - m_)[:, None] * c_
+    h = c 
+    if self.recurrent_dropout_layer != None:
+      h = self.recurrent_dropout_layer.connect(h, self.is_train) 
+    return h, c
+  
+  def connect(self, inputs, mask, is_train):
+    return LSTMLayer.connect(self, inputs, mask, is_train)
+
 
 class DropoutLayer(object):
   def __init__(self, dropout_prob, fix_mask=False, fast_predict=False, prefix="dropout"):
     self.dropout_prob = dropout_prob
     self.fix_mask = fix_mask
-    
     self.prefix = prefix
     self.fast_predict = fast_predict
     print (self.prefix, self.dropout_prob, self.fix_mask)
     assert (dropout_prob > 0)
-        
     ''' This one works for the scan function.
       (instead of theano.tensor.shared.randomstreams.RandomStreams)
       See discussion: https://groups.google.com/forum/#!topic/theano-users/DbvTgTqkT8o
     '''
     self.rng = MRG_RandomStreams(seed=RANDOM_SEED, use_cuda=True)
-
     
   def generate_mask(self, mask_shape, is_train):
     if not self.fast_predict:
       self.dropout_mask = self.rng.binomial(n=1, p=1-self.dropout_prob,
-                        size=tuple(mask_shape),
-                        dtype=floatX)
+                                            size=tuple(mask_shape),
+                                            dtype=floatX)
     
   def connect(self, inputs, is_train):
     ''' Trick to speed up model compiling at decoding time.
