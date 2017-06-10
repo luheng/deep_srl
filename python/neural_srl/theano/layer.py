@@ -461,10 +461,10 @@ class RANLayer(LSTMLayer):
   ''' Recurrent Addivitve Networks (RAN), Lee et al., 2017
   '''
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
-         input_dropout_prob = 0,
-         recurrent_dropout_prob = 0,
-         fast_predict=False,
-         prefix='hwgru'):
+               input_dropout_prob = 0,
+               recurrent_dropout_prob = 0,
+               fast_predict=False,
+               prefix='ran'):
     self.input_dim = input_dim
     self.hidden_dim = hidden_dim
     # W_ix, W_fx
@@ -489,7 +489,7 @@ class RANLayer(LSTMLayer):
     j = _slice(x_, 2, self.hidden_dim)
     c = i * j + f * c_
     c = m_[:, None] * c + (1. - m_)[:, None] * c_
-    h = c 
+    h = tensor.tanh(c)
     if self.recurrent_dropout_layer != None:
       h = self.recurrent_dropout_layer.connect(h, self.is_train) 
     return h, c
