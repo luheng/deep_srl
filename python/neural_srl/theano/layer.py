@@ -16,14 +16,14 @@ def get_rnn_layer(layer_name):
     return HighwayLSTMLayerNoOrth
   if layer_name in {'lstm_no_orth' }:
     return LSTMLayerNoOrth
-  if layer_name == 'hwgru':
-    return HighwayGRULayer
   if layer_name in {'simple', 'simplehw'}:
     return SimpleHighwayLSTMLayer
   if layer_name == 'residual':
     return ResidualLSTMLayer
   if layer_name == 'ran':
     return RANLayer
+  if layer_name == 'hwran':
+    return HighwayRANLayer
   return LSTMLayer
 
 
@@ -299,21 +299,21 @@ class HighwayLSTMLayerNoOrth(HighwayLSTMLayer):
     return LSTMLayer.connect(self, inputs, mask, is_train)
 
   
-class HighwayGRULayer(LSTMLayer):
-  ''' Highway GRU layer.
-  '''
+class HighwayRANLayer(LSTMLayer):
+  """ Highway RAN layer.
+  """
   def __init__(self, input_dim, hidden_dim, forget_bias = 1.0,
          input_dropout_prob = 0,
          recurrent_dropout_prob = 0,
          fast_predict=False,
-         prefix='hwgru'):
+         prefix='hwran'):
     self.input_dim = input_dim
     self.hidden_dim = hidden_dim
     
     self.W = get_variable(_p(prefix, 'W'), [input_dim, hidden_dim * 4],
                 block_orth_normal_initializer([input_dim,], [hidden_dim] * 4))  
-    self.U = get_variable(_p(prefix,' U'), [input_dim, hidden_dim * 3],
-                block_orth_normal_initializer([input_dim,], [hidden_dim] * 3))
+    self.U = get_variable(_p(prefix,' U'), [hidden_dim, hidden_dim * 3],
+                block_orth_normal_initializer([hidden_dim,], [hidden_dim] * 3))
     self.b = get_variable(_p(prefix, 'b'), [hidden_dim * 4],
                 all_zero_initializer())
     
@@ -325,16 +325,14 @@ class HighwayGRULayer(LSTMLayer):
   
   def _step(self, x_, m_, h_, c_):
     preact = tensor.dot(h_, self.U) + _slice(x_, 0, self.hidden_dim * 3)
-      
     i = tensor.nnet.sigmoid(_slice(preact, 0, self.hidden_dim))
-    o = tensor.nnet.sigmoid(_slice(preact, 1, self.hidden_dim))
-    j = _slice(preact, 2, self.hidden_dim)
-    k = _slice(x_, 3, self.hidden_dim)
+    f = tensor.nnet.sigmoid(_slice(preact, 1, self.hidden_dim) + self.forget_bias)
+    t = tensor.nnet.sigmoid(_slice(preact, 2, self.hidden_dim))
+    j = _slice(x_, 3, self.hidden_dim)
 
-    c = i * tensor.tanh(j) + (1. - i) * c_
+    c = i * j + f * c_
     c = m_[:, None] * c + (1. - m_)[:, None] * c_
-    
-    h = o * tensor.tanh(c) + (1. - o) * k
+    h = t * tensor.tanh(c) + (1. - t) * j
     if self.recurrent_dropout_layer != None:
       h = self.recurrent_dropout_layer.connect(h, self.is_train) 
     h = m_[:, None] * h + (1. - m_)[:, None] * h_
