@@ -25,10 +25,11 @@ def evaluate_tagger(model, eval_function, batched_dev_data, evaluator, writer, g
 
   print ('Dev loss={:.6f}'.format(dev_loss))
   evaluator.evaluate(predictions)
-  writer.write('{}\t{}\t{:.6f}\t{:.2f}\n'.format(global_step,
-                                                 time.strftime("%Y-%m-%d %H:%M:%S"),
-                                                 dev_loss, 
-                                                 evaluator.accuracy))
+  writer.write('{}\t{}\t{:.6f}\t{:.2f}\t{:.2f}\n'.format(global_step,
+                                                         time.strftime("%Y-%m-%d %H:%M:%S"),
+                                                         dev_loss, 
+                                                         evaluator.accuracy,
+                                                         evaluator.best_accuracy))
   writer.flush()
   if evaluator.has_best:
     model.save(os.path.join(args.model, 'model'))
@@ -79,7 +80,7 @@ def train_tagger(args):
     data.word_dict.save(os.path.join(args.model, 'word_dict'))
     data.label_dict.save(os.path.join(args.model, 'label_dict'))
     writer = open(os.path.join(args.model, 'checkpoints.tsv'), 'w')
-    writer.write('step\tdatetime\tdev_loss\tdev_accuracy\n')
+    writer.write('step\tdatetime\tdev_loss\tdev_accuracy\tbest_dev_accuracy\n')
 
   with Timer('Building model'):
     model = BiLSTMTaggerModel(data, config=config)  
