@@ -45,6 +45,8 @@ Run:
 or:   
 `./scripts/run_end2end.sh sample_data/sentences_with_predicates.txt temp/sample.out ${gpu_id}` (on GPU)
 
+Note that the script adds `/usr/local/cuda/...` to `PATH` and `CUDA_LD_LIBRARY_PATH`, and loads pretrained models from `./conll05_propid_model` and `./conll05_ensemble`, please adjust the configurations according to your own setup.
+
 The input file contains tokenized sentences, one sentence per line.
 
 The output file will contain something like:
