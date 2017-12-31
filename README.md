@@ -18,7 +18,7 @@ If you use our code, please cite our paper as follows:
 * pip install theano
 * pip install protobuf
 * pip install nltk (For tokenization, required only for the interactive console)
-* sudo apt-get install tsch (Only required for processing CoNLL05 data)
+* sudo apt-get install tcsh (Only required for processing CoNLL05 data)
 * [Git Large File Storage] (https://git-lfs.github.com/): Required to download the large model files. Alternatively, you could get the models [here](https://drive.google.com/drive/folders/0B5zHXdvxrsjNZUx2YXJ5cEM0TW8?usp=sharing)
 * [GloVe](https://nlp.stanford.edu/projects/glove/) embeddings and the [srlconll](http://www.lsi.upc.edu/~srlconll/soft.html) scripts:  
 `./scripts/fetch_required_data.sh`
