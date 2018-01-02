@@ -15,7 +15,7 @@ If you use our code, please cite our paper as follows:
 ### Prerequisites:
 * python should be using Python 2. You can simulate this with virtualenv.
 * pip install numpy
-* pip install theano
+* pip install theano==0.9.0 (Compability with Theano 1.0 is not tested yet)
 * pip install protobuf
 * pip install nltk (For tokenization, required only for the interactive console)
 * sudo apt-get install tcsh (Only required for processing CoNLL05 data)
