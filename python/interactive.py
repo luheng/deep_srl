@@ -79,22 +79,22 @@ if __name__ == "__main__":
     x, _, _, weights = pid_data.get_test_data([(s0, l0)], batch_size=None)
     pid_pred, scores0 = pid_pred_function(x, weights)
 
+    s1_sent = string_sequence_to_ids(tokenized_sent, srl_data.word_dict, True)
     s1 = []
     predicates = []
     for i,p in enumerate(pid_pred[0]):
       if pid_data.label_dict.idx2str[p] == 'V':
-        #print 'Predicate:', tokenized_sent[i]
         predicates.append(i)
         feats = [1 if j == i else 0 for j in range(num_tokens)]
-        s1.append((s0, feats, l0))
+        s1.append((s1_sent, feats, l0))
 
     if len(s1) == 0:
+      # If no identified predicate.
       continue
 
     # Semantic role labeling.
     x, _, _, weights = srl_data.get_test_data(s1, batch_size=None)
     srl_pred, scores = srl_pred_function(x, weights)
-    #print srl_pred 
 
     arguments = []
     for i, sc in enumerate(scores):
