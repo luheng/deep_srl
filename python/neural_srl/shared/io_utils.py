@@ -92,13 +92,15 @@ def write_predprops_to(predictions, label_dict, input_file, output_file,
           else:
             fout_props.write('\t*')
         fout_props.write('\n')
-      sent_id += 1
+
+    sent_id += 1
 
   fout.close()
   print ('Predicted predicates in sequential-tagging format written to: {}.'.format(output_file))
   if fout_props != None:
     fout_props.close()
     print ('CoNLL-formatted predicate information written to: {}.'.format(output_props_file))
+
 
 def bio_to_spans(predictions, label_dict):
   """ Convert BIO-based predictions to a set of arguments.
